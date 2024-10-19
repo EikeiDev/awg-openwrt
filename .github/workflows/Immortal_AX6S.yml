@@ -1,4 +1,4 @@
-name: Create Release on Tag
+name: Immortal AX6S
 # on: [workflow_dispatch]
 on:
   workflow_dispatch:
