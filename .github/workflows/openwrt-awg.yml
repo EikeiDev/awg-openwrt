@@ -1,4 +1,4 @@
-name: Create Release Mediatek Filogic
+name: Create Release Mediatek MT7622
 #on: [push]
 on:
   push:
@@ -8,15 +8,15 @@ on:
 jobs:
   build:
     name: "v${{ matrix.tag }} - ${{ matrix.build_env.pkgarch}} :: ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}} build"
-    runs-on: Linux
-    #runs-on: ubuntu-latest
+    #runs-on: Linux
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         tag: ['23.05.5']
         build_env:
           - pkgarch: aarch64_cortex-a53
             target: mediatek
-            subtarget: filogic
+            subtarget: mt7622
     steps:
       - uses: actions/checkout@v4
         with:
