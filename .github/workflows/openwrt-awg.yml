@@ -1,4 +1,4 @@
-name: Create AWG for MT7622
+name: Create Release Mediatek MT7622
 on:
   workflow_dispatch:
   push:
