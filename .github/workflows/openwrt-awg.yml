@@ -3,8 +3,8 @@ name: Create Release Mediatek MT7622
 on:
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Tag name'
+      release_tag:
+        description: 'Tag for the release (e.g., v23.05.5)'
         required: true
   push:
     tags:
@@ -12,22 +12,21 @@ on:
 
 jobs:
   build:
-    name: "v${{ matrix.tag }} - ${{ matrix.build_env.pkgarch}} :: ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}} build"
+    name: "v${{ matrix.tag }} - ${{ matrix.build_env.pkgarch }} :: ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}} build"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ['23.05.5']
+        tag: ['${{ github.event.inputs.release_tag }}'] # Используем тег из ручного запуска
         build_env:
           - pkgarch: aarch64_cortex-a53
             target: mediatek
             subtarget: mt7622
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           repository: openwrt/openwrt
-          # Используем условие для задания значения ref
-          ref: ${{ github.event_name == 'workflow_dispatch' ? github.event.inputs.tag_name : 'v' + matrix.tag }}
+          ref: ${{ matrix.tag }} # Используем введенный тег
           fetch-depth: 0
 
       - name: Update and install feeds for OpenWRT_v${{ matrix.tag }} ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}
@@ -39,7 +38,7 @@ jobs:
           echo "pkgarch: ${pkgarch}, target: ${target}, subtarget: ${subtarget}"
 
           rm -rf bin/packages/${pkgarch}/awgopenwrt/ || true
-          rm -rf bin/targets/${target}/${subtarget}/packages/  || true
+          rm -rf bin/targets/${target}/${subtarget}/packages/ || true
 
           wget https://downloads.openwrt.org/releases/${{ matrix.tag }}/targets/${target}/${subtarget}/feeds.buildinfo -O feeds.conf
 
@@ -83,9 +82,9 @@ jobs:
 
       - name: Prepare artifacts OpenWRT_v${{ matrix.tag }} ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}
         run: |
-          tag_name=${{ github.event_name == 'workflow_dispatch' ? github.event.inputs.tag_name : github.ref_name }}
+          tag_name=${{ github.event.inputs.release_tag }}
           mkdir -p awgrelease
-          postfix="${tag_name}_v${{ matrix.tag }}_${{ matrix.build_env.pkgarch}}_${{ matrix.build_env.target}}_${{ matrix.build_env.subtarget}}"
+          postfix="${tag_name}_v${{ matrix.tag }}_${{ matrix.build_env.pkgarch }}_${{ matrix.build_env.target }}_${{ matrix.build_env.subtarget }}"
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/amneziawg-tools_*.ipk awgrelease/amneziawg-tools_${postfix}.ipk
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/amneziawg-go_*.ipk awgrelease/amneziawg-go_${postfix}.ipk
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/luci-proto-amneziawg_*.ipk awgrelease/luci-proto-amneziawg_${postfix}.ipk
@@ -95,8 +94,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: awgrelease/*.ipk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.event.inputs.release_tag }} # Используем тег из ввода
 
       - name: Cleanup
         run: |
