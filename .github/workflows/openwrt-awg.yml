@@ -8,11 +8,10 @@ on:
 jobs:
   build:
     name: "v${{ matrix.tag }} - ${{ matrix.build_env.pkgarch}} :: ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}} build"
-    runs-on: Linux
-    #runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ['23.05.5']
+        - tag: "23.05.5"
         build_env:
           - pkgarch: aarch64_cortex-a53
             target: mediatek
@@ -72,10 +71,17 @@ jobs:
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/amneziawg-go_*.ipk awgrelease/amneziawg-go_${postfix}.ipk
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/luci-proto-amneziawg_*.ipk awgrelease/luci-proto-amneziawg_${postfix}.ipk
           cp bin/targets/${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}/packages/kmod-amneziawg_*.ipk awgrelease/kmod-amneziawg_${postfix}.ipk
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          echo "::set-output name=release_tag::Build_$(date +"%Y.%m.%d-%H.%M")"
+
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: awgrelease/*.ipk
+          tag_name: ${{ steps.tag.outputs.release_tag }}
 
       - name: Cleanup
         run: |
