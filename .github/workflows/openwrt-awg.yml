@@ -1,7 +1,6 @@
 name: Create Release Mediatek MT7622
-
+#on: [push]
 on:
-  workflow_dispatch:
   push:
     tags:
       - "v*.*.*"
@@ -9,15 +8,15 @@ on:
 jobs:
   build:
     name: "v${{ matrix.tag }} - ${{ matrix.build_env.pkgarch}} :: ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}} build"
-    runs-on: ubuntu-latest
+    runs-on: Linux
+    #runs-on: ubuntu-latest
     strategy:
       matrix:
-        tag: ["23.05.5"]
+        tag: ['23.05.5']
         build_env:
           - pkgarch: aarch64_cortex-a53
             target: mediatek
             subtarget: mt7622
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,17 +26,24 @@ jobs:
 
       - name: Update and install feeds for OpenWRT_v${{ matrix.tag }} ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}
         run: |
-          pkgarch=${{ matrix.build_env.pkgarch }}
-          target=${{ matrix.build_env.target }}
-          subtarget=${{ matrix.build_env.subtarget }}
+          pkgarch=${{ matrix.build_env.pkgarch}}
+          target=${{ matrix.build_env.target}}
+          subtarget=${{ matrix.build_env.subtarget}}
+
           echo "pkgarch: ${pkgarch}, target: ${target}, subtarget: ${subtarget}"
+
           rm -rf bin/packages/${pkgarch}/awgopenwrt/ || true
-          rm -rf bin/targets/${target}/${subtarget}/packages/ || true
+          rm -rf bin/targets/${target}/${subtarget}/packages/  || true
+
           wget https://downloads.openwrt.org/releases/${{ matrix.tag }}/targets/${target}/${subtarget}/feeds.buildinfo -O feeds.conf
+
           echo "src-git awgopenwrt https://github.com/lolo6oT/awg-openwrt.git" >> ./feeds.conf
+
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
           wget https://downloads.openwrt.org/releases/${{ matrix.tag }}/targets/${target}/${subtarget}/config.buildinfo -O .config
+
           make defconfig
 
       - name: Make Download and World OpenWRT_v${{ matrix.tag }} ${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}
@@ -47,11 +53,15 @@ jobs:
           echo "CONFIG_PACKAGE_amneziawg-tools=y" >> .config
           echo "CONFIG_PACKAGE_luci-proto-amneziawg=y" >> .config
           echo "CONFIG_PACKAGE_amneziawg-go=y" >> .config
+
           if [[ $(uname -m) == "aarch64" ]]; then
             echo 'CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT="/usr/local/go/bin/go"' >> .config
             echo 'CONFIG_GOLANG_BUILD_CACHE_DIR=""' >> .config
           fi
+
           make defconfig
+
+          #make -j $(nproc) V=sc download world
           echo "Make tools/install"
           make tools/install -i -j $(nproc)
           echo "Make toolchain/install"
@@ -76,15 +86,10 @@ jobs:
           cp bin/packages/${{ matrix.build_env.pkgarch }}/awgopenwrt/luci-proto-amneziawg_*.ipk awgrelease/luci-proto-amneziawg_${postfix}.ipk
           cp bin/targets/${{ matrix.build_env.target}}/${{ matrix.build_env.subtarget}}/packages/kmod-amneziawg_*.ipk awgrelease/kmod-amneziawg_${postfix}.ipk
 
-      - name: Generate release tag
-        run: |
-          echo "RELEASE_TAG=Build_$(date +"%Y.%m.%d-%H.%M")" >> $GITHUB_ENV
-
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: awgrelease/*.ipk
-          tag_name: ${{ env.RELEASE_TAG }}
 
       - name: Cleanup
         run: |
