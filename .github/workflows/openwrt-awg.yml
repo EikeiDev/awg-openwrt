@@ -1,4 +1,4 @@
-name: Create Release Mediatek Filogic
+name: Create Release Mediatek MT7622
 #on: [push]
 on:
   push:
