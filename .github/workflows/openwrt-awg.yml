@@ -16,7 +16,7 @@ jobs:
         build_env:
           - pkgarch: aarch64_cortex-a53
             target: mediatek
-            subtarget: filogic
+            subtarget: mt7622
     steps:
       - uses: actions/checkout@v4
         with:
